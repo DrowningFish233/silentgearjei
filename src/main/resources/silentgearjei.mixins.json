@@ -1,0 +1,17 @@
+{
+  "required": true,
+  "package": "com.drowningfish233.silentgearjei.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+  ],
+  "client": [
+    "client.ListElementInfoMixin",
+    "client.emi.ItemEmiStackMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}
