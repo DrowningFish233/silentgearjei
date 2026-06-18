@@ -11,7 +11,7 @@ import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.fml.loading.FMLEnvironment;
 
-@Mod(value = SilentGearJei.MODID, dist = Dist.CLIENT)
+@Mod(value = SilentGearJei.MODID, dist = Dist.CLIENT)   
 public class SilentGearJeiClient {
 
     public SilentGearJeiClient(ModContainer container, IEventBus modEventBus) {

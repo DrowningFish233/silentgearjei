@@ -2,10 +2,6 @@ package com.drowningfish233.silentgearjei.compat.jei;
 
 import com.drowningfish233.silentgearjei.SilentGearJei;
 import com.drowningfish233.silentgearjei.Utils.JEI.*;
-import com.drowningfish233.silentgearjei.Utils.JEI.JeiLayoutConstants;
-import com.drowningfish233.silentgearjei.Utils.JEI.JeiLineInfo;
-import com.drowningfish233.silentgearjei.Utils.JEI.JeiWidgetFactory;
-import com.drowningfish233.silentgearjei.Utils.JEI.LocalizationKeys;
 import com.yanny.aci.api.Rect;
 import com.yanny.ali.jei.compatibility.jei.JeiScrollWidget;
 import mezz.jei.api.IModPlugin;
@@ -36,10 +32,10 @@ import net.silentchaos512.gear.api.material.Material;
 import net.silentchaos512.gear.api.part.PartType;
 import net.silentchaos512.gear.api.property.GearProperty;
 import net.silentchaos512.gear.gear.material.MaterialInstance;
-import net.silentchaos512.gear.setup.SgItems;
 import net.silentchaos512.gear.setup.SgRegistries;
 import net.silentchaos512.gear.setup.gear.PartTypes;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -52,6 +48,8 @@ public class SilentGearMaterialsJeiPlugin implements IModPlugin {
 
     public static final RecipeType<Material> MATERIAL_TYPE =
             RecipeType.create(MODID, "silentgear_material", Material.class);
+
+    private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.#");
 
     @Override
     public ResourceLocation getPluginUid() {
@@ -73,6 +71,12 @@ public class SilentGearMaterialsJeiPlugin implements IModPlugin {
         private final IDrawable background;
         private final IDrawable icon;
         private final Component localizedName;
+
+        private static final int LINE_HEIGHT = 11;
+        private static final int TITLE_LINE_HEIGHT = 14;
+        private static final int SECTION_SPACING = 4;
+        private static final int CONTENT_X = 23;
+        private static final int TEXT_MAX_WIDTH = 155;
 
         public MaterialCategory(IGuiHelper guiHelper) {
             this.background = guiHelper.createBlankDrawable(
@@ -130,9 +134,6 @@ public class SilentGearMaterialsJeiPlugin implements IModPlugin {
             }
         }
 
-        /**
-         * 判断值是否有效（普通属性）
-         */
         private boolean hasValue(String value) {
             return value != null &&
                     !value.isEmpty() &&
@@ -142,27 +143,16 @@ public class SilentGearMaterialsJeiPlugin implements IModPlugin {
                     !value.equals("{}");
         }
 
-        /**
-         * 判断是否是采集等级属性
-         */
         private boolean isHarvestTierProperty(GearProperty<?, ?> prop) {
             if (prop == null) return false;
 
             ResourceLocation registryKey = SgRegistries.GEAR_PROPERTY.getKey(prop);
-            String propName = prop.getDisplayName().getString();
-            String propKey = registryKey != null ? registryKey.getPath() : "";
+            if (registryKey == null) return false;
 
-            return propName.contains("Harvest Tier") ||
-                    propName.contains("harvest_tier") ||
-                    propKey.contains("harvest_tier") ||
-                    propName.contains("Harvest Level") ||
-                    propName.contains("采集等级") ||
-                    propName.contains("挖掘等级");
+            String path = registryKey.getPath();
+            return path.equals("harvest_tier") || path.equals("harvest_level");
         }
 
-        /**
-         * 格式化采集等级显示
-         */
         private String formatHarvestTierValue(String rawValue) {
             if (rawValue == null || rawValue.isEmpty() || rawValue.equals("{}")) {
                 return "0";
@@ -186,10 +176,6 @@ public class SilentGearMaterialsJeiPlugin implements IModPlugin {
             return "0";
         }
 
-
-        /**
-         * 判断属性是否应该显示
-         */
         private boolean shouldShowProperty(GearProperty<?, ?> prop, String value) {
             if (value == null) return false;
 
@@ -197,13 +183,9 @@ public class SilentGearMaterialsJeiPlugin implements IModPlugin {
                 return !value.isEmpty() && !value.equals("{}");
             }
 
-            // 其他属性按原有逻辑
             return hasValue(value);
         }
 
-        /**
-         * 获取属性显示值
-         */
         private String getPropertyDisplayValue(GearProperty<?, ?> prop, String rawValue) {
             if (isHarvestTierProperty(prop)) {
                 return formatHarvestTierValue(rawValue);
@@ -211,9 +193,6 @@ public class SilentGearMaterialsJeiPlugin implements IModPlugin {
             return rawValue;
         }
 
-        /**
-         * 获取属性显示名称
-         */
         private String getPropertyDisplayName(GearProperty<?, ?> prop) {
             if (isHarvestTierProperty(prop)) {
                 return Component.translatable("jei.reveriefoundry.harvest_level").getString();
@@ -221,17 +200,44 @@ public class SilentGearMaterialsJeiPlugin implements IModPlugin {
             return prop.getDisplayName().getString();
         }
 
-        /**
-         * 将带格式的文本按最大宽度换行，保留颜色
-         */
-        private List<String> wrapFormattedText(String text, int maxWidth) {
+        private String getColoredValueString(String value) {
+            try {
+                double num = Double.parseDouble(value);
+                String formatted = DECIMAL_FORMAT.format(num);
+                if (num > 0) {
+                    return "§a+" + formatted;
+                } else if (num < 0) {
+                    return "§c" + formatted;
+                } else {
+                    return "§f" + formatted;
+                }
+            } catch (NumberFormatException ignored) {
+                return "§f" + value;
+            }
+        }
+
+        private List<String> wrapPlainText(String text, int maxWidth) {
             Minecraft mc = Minecraft.getInstance();
             Font font = mc.font;
 
-            String formatPrefix = extractFormattingPrefix(text);
+            List<FormattedText> wrappedLines = font.getSplitter().splitLines(
+                    text,
+                    maxWidth,
+                    Style.EMPTY
+            );
+
+            List<String> result = new ArrayList<>();
+            for (FormattedText line : wrappedLines) {
+                result.add(line.getString());
+            }
+            return result;
+        }
+
+        private List<String> wrapTextWithPrefix(String text, int maxWidth, String colorPrefix) {
+            Minecraft mc = Minecraft.getInstance();
+            Font font = mc.font;
 
             String plainText = ChatFormatting.stripFormatting(text);
-            if (plainText == null) plainText = text;
 
             List<FormattedText> wrappedLines = font.getSplitter().splitLines(
                     plainText,
@@ -243,178 +249,170 @@ public class SilentGearMaterialsJeiPlugin implements IModPlugin {
             for (int i = 0; i < wrappedLines.size(); i++) {
                 String lineText = wrappedLines.get(i).getString();
                 if (i == 0) {
-                    result.add(formatPrefix + lineText);
+                    result.add(colorPrefix + lineText);
                 } else {
-                    result.add(formatPrefix + "  " + lineText);
+                    result.add(colorPrefix + "  " + lineText);
                 }
             }
-
             return result;
         }
 
-        /**
-         * 提取文本开头的格式代码
-         */
-        private String extractFormattingPrefix(String text) {
-            StringBuilder prefix = new StringBuilder();
-            int i = 0;
-            while (i < text.length() - 1) {
-                if (text.charAt(i) == '§') {
-                    prefix.append('§').append(text.charAt(i + 1));
-                    i += 2;
-                } else {
-                    break;
-                }
-            }
-            return prefix.toString();
-        }
-
-        /**
-         * 创建带标签和值的行
-         */
-        private List<JeiLineInfo> createLabelValueLines(String label, String value, int startY, int indent) {
+        private List<JeiLineInfo> createLabelValueLines(String label, String value, int startY) {
             List<JeiLineInfo> lines = new ArrayList<>();
 
-            String indentStr = "  ".repeat(indent);
-            String fullText = indentStr + JeiLayoutConstants.COLOR_LABEL + label + " " + JeiLayoutConstants.COLOR_VALUE + value;
+            String fullText = label + " " + value;
+            String colorPrefix = "§3";
 
-            int availableWidth = JeiLayoutConstants.TEXT_MAX_WIDTH - (indent * 2 * 4);
-
-            List<String> wrappedLines = wrapFormattedText(fullText, availableWidth);
-
-            int currentY = startY;
-            for (String line : wrappedLines) {
-                boolean isBold = line.contains("§l");
-                lines.add(new JeiLineInfo(currentY, line, isBold));
-                currentY += JeiLayoutConstants.LINE_HEIGHT;
-            }
-
-            return lines;
-        }
-
-        /**
-         * 创建属性行
-         */
-        private List<JeiLineInfo> createPropertyLine(String propName, String value, int startY, int indent) {
-            List<JeiLineInfo> lines = new ArrayList<>();
-
-            String indentStr = "  ".repeat(indent);
-            String fullText = indentStr + JeiLayoutConstants.COLOR_PROP_NAME + propName + ": " + JeiLayoutConstants.COLOR_VALUE + value;
-
-            int availableWidth = JeiLayoutConstants.TEXT_MAX_WIDTH - (indent * 2 * 4);
-            List<String> wrappedLines = wrapFormattedText(fullText, availableWidth);
-
-            int currentY = startY;
-            for (String line : wrappedLines) {
-                boolean isBold = line.contains("§l");
-                lines.add(new JeiLineInfo(currentY, line, isBold));
-                currentY += JeiLayoutConstants.LINE_HEIGHT;
-            }
-
-            return lines;
-        }
-
-        /**
-         * 创建标题行
-         */
-        private List<JeiLineInfo> createTitleLine(String title, int startY) {
-            List<JeiLineInfo> lines = new ArrayList<>();
-
-            String fullText = JeiLayoutConstants.COLOR_TITLE + title;
-            List<String> wrappedLines = wrapFormattedText(fullText, JeiLayoutConstants.TEXT_MAX_WIDTH);
-
-            int currentY = startY;
-            for (String line : wrappedLines) {
-                lines.add(new JeiLineInfo(currentY, line, true));
-                currentY += JeiLayoutConstants.LINE_HEIGHT;
-            }
-
-            return lines;
-        }
-
-        /**
-         * 创建小节标题行
-         */
-        private List<JeiLineInfo> createSectionTitleLine(String title, int startY, int indent) {
-            List<JeiLineInfo> lines = new ArrayList<>();
-
-            String indentStr = "  ".repeat(indent);
-            String fullText = indentStr + JeiLayoutConstants.COLOR_SUBTITLE + title;
-
-            int availableWidth = JeiLayoutConstants.TEXT_MAX_WIDTH - (indent * 2 * 4);
-            List<String> wrappedLines = wrapFormattedText(fullText, availableWidth);
+            List<String> wrappedLines = wrapTextWithPrefix(fullText, TEXT_MAX_WIDTH, colorPrefix);
 
             int currentY = startY;
             for (String line : wrappedLines) {
                 lines.add(new JeiLineInfo(currentY, line, false));
-                currentY += JeiLayoutConstants.LINE_HEIGHT;
+                currentY += LINE_HEIGHT;
             }
 
             return lines;
         }
 
         /**
-         * 构建所有显示内容
+         * 属性行 - 属性名和值分开处理，值单独带颜色
          */
+        private List<JeiLineInfo> createPropertyLine(String propName, String value, int startY) {
+            List<JeiLineInfo> lines = new ArrayList<>();
+
+            String coloredValue = getColoredValueString(value);
+            String fullText = propName + ": " + coloredValue;
+            String colorPrefix = "  §0";
+
+            List<String> wrappedLines = wrapTextWithPrefix(fullText, TEXT_MAX_WIDTH, colorPrefix);
+
+            int currentY = startY;
+            for (String line : wrappedLines) {
+                lines.add(new JeiLineInfo(currentY, line, false));
+                currentY += LINE_HEIGHT;
+            }
+
+            return lines;
+        }
+
+        /**
+         * 属性行改进版 - 分开绘制属性名和值，确保值颜色不丢失
+         * 返回两个 JeiLineInfo，一个用于属性名，一个用于值
+         */
+        private List<JeiLineInfo> createPropertyLineSeparate(String propName, String value, int startY) {
+            List<JeiLineInfo> lines = new ArrayList<>();
+
+            String coloredValue = getColoredValueString(value);
+            String prefixText = "  §0" + propName + ": ";
+
+            Minecraft mc = Minecraft.getInstance();
+            Font font = mc.font;
+            int prefixWidth = font.width(ChatFormatting.stripFormatting(prefixText));
+
+            String fullPlain = propName + ": " + ChatFormatting.stripFormatting(value);
+            if (font.width(fullPlain) <= TEXT_MAX_WIDTH) {
+                lines.add(new JeiLineInfo(startY, prefixText + coloredValue, false));
+                return lines;
+            }
+
+            List<String> propWrapped = wrapPlainText(prefixText, TEXT_MAX_WIDTH);
+            for (String line : propWrapped) {
+                lines.add(new JeiLineInfo(startY, line, false));
+                startY += LINE_HEIGHT;
+            }
+
+            String valueIndent = "    ";
+            List<String> valueWrapped = wrapPlainText(coloredValue, TEXT_MAX_WIDTH - font.width(valueIndent));
+            for (String line : valueWrapped) {
+                lines.add(new JeiLineInfo(startY, valueIndent + line, false));
+                startY += LINE_HEIGHT;
+            }
+
+            return lines;
+        }
+
+        private List<JeiLineInfo> createTitleLine(String title, int startY) {
+            List<JeiLineInfo> lines = new ArrayList<>();
+
+            String colorPrefix = "§6§l";
+            List<String> wrappedLines = wrapTextWithPrefix(title, TEXT_MAX_WIDTH, colorPrefix);
+
+            int currentY = startY;
+            for (String line : wrappedLines) {
+                lines.add(new JeiLineInfo(currentY, line, true));
+                currentY += TITLE_LINE_HEIGHT;
+            }
+
+            return lines;
+        }
+
+        private List<JeiLineInfo> createSectionTitleLine(String title, int startY) {
+            List<JeiLineInfo> lines = new ArrayList<>();
+
+            String colorPrefix = "§b■ ";
+            List<String> wrappedLines = wrapTextWithPrefix(title, TEXT_MAX_WIDTH, colorPrefix);
+
+            int currentY = startY;
+            for (String line : wrappedLines) {
+                lines.add(new JeiLineInfo(currentY, line, false));
+                currentY += LINE_HEIGHT;
+            }
+
+            return lines;
+        }
+
         private List<JeiLineInfo> buildAllContent(Material material) {
             List<JeiLineInfo> allLines = new ArrayList<>();
-            int currentY = JeiLayoutConstants.TOP_PADDING;
+            int currentY = 4;
 
+            // 材料名称
             String materialName = SilentGearJeiUtils.getMaterialDisplayName(material, PartTypes.MAIN.get()).getString();
             allLines.addAll(createTitleLine(materialName, currentY));
-            currentY += allLines.size() > 0 ?
-                    (allLines.get(allLines.size() - 1).y - currentY + JeiLayoutConstants.LINE_HEIGHT) : JeiLayoutConstants.LINE_HEIGHT;
+            currentY += !allLines.isEmpty() ?
+                    (allLines.get(allLines.size() - 1).y - currentY + TITLE_LINE_HEIGHT) : TITLE_LINE_HEIGHT;
 
+            // ID
             ResourceLocation idResource = SilentGearJeiUtils.getMaterialId(material);
             String id = idResource != null ? idResource.toString() : Component.translatable(LocalizationKeys.UNKNOWN).getString();
-            allLines.addAll(createLabelValueLines(Component.translatable(LocalizationKeys.ID).getString(), id, currentY, 0));
-            currentY += allLines.size() > 0 ?
-                    (allLines.get(allLines.size() - 1).y - currentY + JeiLayoutConstants.LINE_HEIGHT) : JeiLayoutConstants.LINE_HEIGHT;
+            allLines.addAll(createLabelValueLines(Component.translatable(LocalizationKeys.ID).getString(), id, currentY));
+            currentY += !allLines.isEmpty() ?
+                    (allLines.get(allLines.size() - 1).y - currentY + LINE_HEIGHT) : LINE_HEIGHT;
 
+            // 父材料
             Material parent = SilentGearJeiUtils.getMaterialParent(material);
             if (parent != null) {
                 String parentName = SilentGearJeiUtils.getMaterialDisplayName(parent, PartTypes.MAIN.get()).getString();
-                allLines.addAll(createLabelValueLines(Component.translatable(LocalizationKeys.PARENT).getString(), parentName, currentY, 0));
-                currentY += allLines.size() > 0 ?
-                        (allLines.get(allLines.size() - 1).y - currentY + JeiLayoutConstants.LINE_HEIGHT) : JeiLayoutConstants.LINE_HEIGHT;
+                allLines.addAll(createLabelValueLines(Component.translatable(LocalizationKeys.PARENT).getString(), parentName, currentY));
+                currentY += !allLines.isEmpty() ?
+                        (allLines.get(allLines.size() - 1).y - currentY + LINE_HEIGHT) : LINE_HEIGHT;
             }
 
+            // 类型
             String type = material.isSimple() ?
                     Component.translatable(LocalizationKeys.TYPE_SIMPLE).getString() :
                     Component.translatable(LocalizationKeys.TYPE_COMPOUND).getString();
-            allLines.addAll(createLabelValueLines(Component.translatable(LocalizationKeys.TYPE).getString(), type, currentY, 0));
-            currentY += allLines.size() > 0 ?
-                    (allLines.get(allLines.size() - 1).y - currentY + JeiLayoutConstants.LINE_HEIGHT) : JeiLayoutConstants.LINE_HEIGHT;
+            allLines.addAll(createLabelValueLines(Component.translatable(LocalizationKeys.TYPE).getString(), type, currentY));
+            currentY += !allLines.isEmpty() ?
+                    (allLines.get(allLines.size() - 1).y - currentY + LINE_HEIGHT) : LINE_HEIGHT;
 
+            // 来源
             String source = SilentGearJeiUtils.getMaterialPackName(material);
-            allLines.addAll(createLabelValueLines(Component.translatable(LocalizationKeys.SOURCE).getString(), source, currentY, 0));
-            currentY += allLines.size() > 0 ?
-                    (allLines.get(allLines.size() - 1).y - currentY + JeiLayoutConstants.LINE_HEIGHT) : JeiLayoutConstants.LINE_HEIGHT;
+            allLines.addAll(createLabelValueLines(Component.translatable(LocalizationKeys.SOURCE).getString(), source, currentY));
+            currentY += !allLines.isEmpty() ?
+                    (allLines.get(allLines.size() - 1).y - currentY + LINE_HEIGHT) : LINE_HEIGHT;
 
+            // 分类
             List<String> categories = SilentGearJeiUtils.getMaterialCategories(material);
             if (!categories.isEmpty()) {
                 String categoriesStr = String.join(", ", categories);
-                allLines.addAll(createLabelValueLines(Component.translatable(LocalizationKeys.CATEGORIES).getString(), categoriesStr, currentY, 0));
-                currentY += allLines.size() > 0 ?
-                        (allLines.get(allLines.size() - 1).y - currentY + JeiLayoutConstants.LINE_HEIGHT) : JeiLayoutConstants.LINE_HEIGHT;
+                allLines.addAll(createLabelValueLines(Component.translatable(LocalizationKeys.CATEGORIES).getString(), categoriesStr, currentY));
+                currentY += !allLines.isEmpty() ?
+                        (allLines.get(allLines.size() - 1).y - currentY + LINE_HEIGHT) : LINE_HEIGHT;
             }
 
-            List<PartType> allowedParts = SilentGearJeiUtils.getAllowedPartTypes(material);
-            if (!allowedParts.isEmpty()) {
-                String partTypesStr = allowedParts.stream()
-                        .map(pt -> pt.getDisplayName().getString())
-                        .collect(Collectors.joining(", "));
-                allLines.addAll(createLabelValueLines(Component.translatable(LocalizationKeys.ALLOWED_PARTS).getString(), partTypesStr, currentY, 0));
-                currentY += allLines.size() > 0 ?
-                        (allLines.get(allLines.size() - 1).y - currentY + JeiLayoutConstants.LINE_HEIGHT) : JeiLayoutConstants.LINE_HEIGHT;
-            }
+            currentY += SECTION_SPACING;
 
-            currentY += JeiLayoutConstants.SECTION_SPACING;
-
-            allLines.addAll(createSectionTitleLine(Component.translatable(LocalizationKeys.PROPERTIES).getString(), currentY, 0));
-            currentY += allLines.size() > 0 ?
-                    (allLines.get(allLines.size() - 1).y - currentY + JeiLayoutConstants.LINE_HEIGHT) : JeiLayoutConstants.LINE_HEIGHT;
-
+            // 处理各个部件的属性
             List<PartType> partTypes = SilentGearJeiUtils.getAllowedPartTypes(material);
             List<GearProperty<?, ?>> properties = SilentGearJeiUtils.getAllProperties();
 
@@ -422,7 +420,6 @@ public class SilentGearMaterialsJeiPlugin implements IModPlugin {
 
             for (PartType partType : partTypes) {
                 boolean hasPartProperties = false;
-                List<JeiLineInfo> partLines = new ArrayList<>();
 
                 for (GearProperty<?, ?> prop : properties) {
                     String rawValue = SilentGearJeiUtils.getMaterialPropertyValue(material, partType, prop);
@@ -430,9 +427,9 @@ public class SilentGearMaterialsJeiPlugin implements IModPlugin {
                     if (shouldShowProperty(prop, rawValue)) {
                         if (!hasPartProperties) {
                             String partName = partType.getDisplayName().getString();
-                            partLines.addAll(createSectionTitleLine(partName + ":", currentY, 1));
-                            currentY += partLines.size() > 0 ?
-                                    (partLines.get(partLines.size() - 1).y - currentY + JeiLayoutConstants.LINE_HEIGHT) : JeiLayoutConstants.LINE_HEIGHT;
+                            allLines.addAll(createSectionTitleLine(partName, currentY));
+                            currentY += !allLines.isEmpty() ?
+                                    (allLines.get(allLines.size() - 1).y - currentY + LINE_HEIGHT) : LINE_HEIGHT;
                             hasPartProperties = true;
                             hasAnyProperty = true;
                         }
@@ -440,13 +437,12 @@ public class SilentGearMaterialsJeiPlugin implements IModPlugin {
                         String propName = getPropertyDisplayName(prop);
                         String displayValue = getPropertyDisplayValue(prop, rawValue);
 
-                        partLines.addAll(createPropertyLine(propName, displayValue, currentY, 2));
-                        currentY += partLines.size() > 0 ?
-                                (partLines.get(partLines.size() - 1).y - currentY + JeiLayoutConstants.LINE_HEIGHT) : JeiLayoutConstants.LINE_HEIGHT;
+                        // 使用改进的分离绘制方法
+                        allLines.addAll(createPropertyLineSeparate(propName, displayValue, currentY));
+                        currentY += !allLines.isEmpty() ?
+                                (allLines.get(allLines.size() - 1).y - currentY + LINE_HEIGHT) : LINE_HEIGHT;
                     }
                 }
-
-                allLines.addAll(partLines);
 
                 if (hasPartProperties) {
                     currentY += 2;
@@ -454,11 +450,12 @@ public class SilentGearMaterialsJeiPlugin implements IModPlugin {
             }
 
             if (!hasAnyProperty) {
-                String noPropsText = JeiLayoutConstants.COLOR_VALUE + Component.translatable(LocalizationKeys.NO_PROPERTIES).getString();
-                List<String> noPropsWrapped = wrapFormattedText("  " + noPropsText, JeiLayoutConstants.TEXT_MAX_WIDTH - 20);
+                String noPropsText = Component.translatable(LocalizationKeys.NO_PROPERTIES).getString();
+                String colorPrefix = "  §0";
+                List<String> noPropsWrapped = wrapTextWithPrefix(noPropsText, TEXT_MAX_WIDTH, colorPrefix);
                 for (String line : noPropsWrapped) {
                     allLines.add(new JeiLineInfo(currentY, line, false));
-                    currentY += JeiLayoutConstants.LINE_HEIGHT;
+                    currentY += LINE_HEIGHT;
                 }
             }
 
@@ -471,17 +468,15 @@ public class SilentGearMaterialsJeiPlugin implements IModPlugin {
 
             if (!contentLines.isEmpty()) {
                 int contentHeight = 0;
-                if (!contentLines.isEmpty()) {
-                    JeiLineInfo lastLine = contentLines.get(contentLines.size() - 1);
-                    contentHeight = lastLine.y + JeiLayoutConstants.LINE_HEIGHT + 10;
-                }
+                JeiLineInfo lastLine = contentLines.get(contentLines.size() - 1);
+                contentHeight = lastLine.y + LINE_HEIGHT + 10;
 
                 List<IRecipeWidget> lineWidgets = new ArrayList<>();
 
                 for (JeiLineInfo line : contentLines) {
                     lineWidgets.add(JeiWidgetFactory.createTextWidget(
                             line.text,
-                            JeiLayoutConstants.TEXT_START_X,
+                            CONTENT_X,
                             line.y,
                             line.isBold
                     ));
