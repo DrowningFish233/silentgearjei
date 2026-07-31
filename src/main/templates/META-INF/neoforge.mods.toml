@@ -99,7 +99,7 @@ Includes a series of features!
 [[dependencies.${mod_id}]]
     modId="jei"
     type="required"
-    versionRange="[19.25.1.328,)"
+    versionRange="[19.42.0.388,)"
     ordering="NONE"
     side="CLIENT"
 
