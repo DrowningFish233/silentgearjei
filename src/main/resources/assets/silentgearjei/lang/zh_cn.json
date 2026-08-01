@@ -72,5 +72,7 @@
   "silentgearjei.configuration.fixedMaxRows": "固定行数",
   "silentgearjei.configuration.fixedMaxRows.tooltip": "禁用动态计算时使用的固定行数",
   "silentgearjei.configuration.enableDynamicRowCalculation": "启用动态行数计算",
-  "silentgearjei.configuration.enableDynamicRowCalculation.tooltip": "启用后根据可用空间动态计算行数，禁用则使用固定行数"
+  "silentgearjei.configuration.enableDynamicRowCalculation.tooltip": "启用后根据可用空间动态计算行数，禁用则使用固定行数",
+  "jei.silentgearjei.harvest_level": "采集等级",
+  "jei.silentgearjei.material": "材料：%s"
 }

@@ -2,7 +2,10 @@ package com.drowningfish233.silentgearjei.mixin.client.emi;
 
 import dev.emi.emi.api.stack.ItemEmiStack;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import net.silentchaos512.gear.api.part.PartType;
 import net.silentchaos512.gear.api.traits.TraitInstance;
 import net.silentchaos512.gear.api.util.PartGearKey;
@@ -19,9 +22,12 @@ import java.util.List;
 import java.util.Set;
 
 @Mixin(value = ItemEmiStack.class, remap = false)
+@OnlyIn(Dist.CLIENT)
 public class ItemEmiStackMixin {
 
     private static final boolean EMI_PRESENT;
+    private static final String TRAIT_PREFIX = "%";
+    private static final String PART_TYPE_PREFIX = "&";
 
     static {
         boolean present = false;
@@ -43,24 +49,59 @@ public class ItemEmiStackMixin {
 
         MaterialInstance material = MaterialInstance.from(stack);
         if (material != null && material.isValid()) {
-            Set<String> traitNames = new HashSet<>();
-            for (PartType partType : SgRegistries.PART_TYPE) {
-                for (TraitInstance trait : material.getTraits(PartGearKey.ofAll(partType))) {
-                    if (trait.isValid()) {
-                        traitNames.add(trait.getTrait().getDisplayName(0).getString().toLowerCase());
-                        traitNames.add(trait.getTraitId().toString().toLowerCase());
-                        traitNames.add(trait.getTraitId().getPath().toLowerCase());
-                    }
-                }
-            }
+            Set<String> searchTerms = new HashSet<>();
 
-            if (!traitNames.isEmpty()) {
+            collectTraitSearchTerms(material, searchTerms);
+
+            collectPartTypeSearchTerms(material, searchTerms);
+
+            if (!searchTerms.isEmpty()) {
                 List<Component> original = cir.getReturnValue();
                 List<Component> modified = new ArrayList<>(original);
-                for (String name : traitNames) {
-                    modified.add(Component.literal(name));
+                for (String term : searchTerms) {
+                    modified.add(Component.literal(term));
                 }
                 cir.setReturnValue(modified);
+            }
+        }
+    }
+
+    private void collectTraitSearchTerms(MaterialInstance material, Set<String> terms) {
+        for (PartType partType : SgRegistries.PART_TYPE) {
+            for (TraitInstance trait : material.getTraits(PartGearKey.ofAll(partType))) {
+                if (trait.isValid()) {
+                    String displayName = trait.getTrait().getDisplayName(0).getString();
+                    terms.add(TRAIT_PREFIX + displayName);
+                    terms.add(TRAIT_PREFIX + displayName.toLowerCase());
+
+                    String fullId = trait.getTraitId().toString();
+                    terms.add(TRAIT_PREFIX + fullId);
+                    terms.add(TRAIT_PREFIX + fullId.toLowerCase());
+
+                    String path = trait.getTraitId().getPath();
+                    terms.add(TRAIT_PREFIX + path);
+                    terms.add(TRAIT_PREFIX + path.toLowerCase());
+                }
+            }
+        }
+    }
+
+    private void collectPartTypeSearchTerms(MaterialInstance material, Set<String> terms) {
+        Set<PartType> partTypes = material.getPartTypes();
+        for (PartType partType : partTypes) {
+            ResourceLocation partTypeId = SgRegistries.PART_TYPE.getKey(partType);
+            if (partTypeId != null && !partTypeId.getPath().equals("none")) {
+                String displayName = partType.getDisplayName().getString();
+                terms.add(PART_TYPE_PREFIX + displayName);
+                terms.add(PART_TYPE_PREFIX + displayName.toLowerCase());
+
+                String path = partTypeId.getPath();
+                terms.add(PART_TYPE_PREFIX + path);
+                terms.add(PART_TYPE_PREFIX + path.toLowerCase());
+
+                String fullId = partTypeId.toString();
+                terms.add(PART_TYPE_PREFIX + fullId);
+                terms.add(PART_TYPE_PREFIX + fullId.toLowerCase());
             }
         }
     }

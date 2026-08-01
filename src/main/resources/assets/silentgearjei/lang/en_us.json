@@ -72,5 +72,7 @@
   "silentgearjei.configuration.fixedMaxRows": "Fixed Row Count",
   "silentgearjei.configuration.fixedMaxRows.tooltip": "Fixed number of rows used when dynamic calculation is disabled",
   "silentgearjei.configuration.enableDynamicRowCalculation": "Enable Dynamic Row Calculation",
-  "silentgearjei.configuration.enableDynamicRowCalculation.tooltip": "When enabled, row count is calculated dynamically based on available space; when disabled, fixed row count is used"
+  "silentgearjei.configuration.enableDynamicRowCalculation.tooltip": "When enabled, row count is calculated dynamically based on available space; when disabled, fixed row count is used",
+  "jei.silentgearjei.harvest_level": "采集等级",
+  "jei.silentgearjei.material": "材料：%s"
 }

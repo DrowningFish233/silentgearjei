@@ -173,8 +173,8 @@ configurations {
 dependencies {
     implementation files('libs/AdvancedLootInfo-neoforge-1.21.1-1.7.2.jar')
     implementation files('libs/emi-1.1.24+1.21.1+neoforge.jar')
-    implementation "net.silentchaos512:silent-gear-1.21.1-neoforge:4.0.30"
-    implementation "net.silentchaos512:silent-lib-1.21.1-neoforge:10.4.0"
+    implementation files('libs/silent-gear-1.21.1-neoforge-4.2.1.1.jar')
+    implementation files('libs/silent-lib-1.21-neoforge-10.3.1.jar')
     compileOnly("mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}")
     runtimeOnly("mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}")
 }
