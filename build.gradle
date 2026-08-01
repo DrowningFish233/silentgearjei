@@ -5,9 +5,30 @@ plugins {
     id 'idea'
 }
 
-def gpr_creds = {
-    username = property('gpr.username')
-    password = property('gpr.token')
+import org.gradle.authentication.http.BasicAuthentication
+
+def githubPackagesUsername = providers.gradleProperty('gpr.username')
+        .orElse(providers.gradleProperty('gpr.user'))
+        .orElse(providers.environmentVariable('GPR_USERNAME'))
+        .orElse(providers.environmentVariable('GITHUB_ACTOR'))
+        .map { it.trim() }
+def githubPackagesToken = providers.gradleProperty('gpr.token')
+        .orElse(providers.gradleProperty('gpr.key'))
+        .orElse(providers.environmentVariable('GPR_TOKEN'))
+        .orElse(providers.environmentVariable('GITHUB_TOKEN'))
+        .map { it.trim() }
+def hasGithubPackagesCredentials = githubPackagesUsername.isPresent() &&
+        !githubPackagesUsername.get().isBlank() &&
+        githubPackagesToken.isPresent() &&
+        !githubPackagesToken.get().isBlank()
+
+def githubPackagesCredentials = {
+    username = githubPackagesUsername.get()
+    password = githubPackagesToken.get()
+}
+
+def githubPackagesAuthentication = {
+    basic(BasicAuthentication)
 }
 
 tasks.named('wrapper', Wrapper).configure {
@@ -37,15 +58,24 @@ repositories {
 
     maven {
         url = uri("https://maven.pkg.github.com/silentchaos512/silent-gear")
-        credentials gpr_creds
+        if (hasGithubPackagesCredentials) {
+            credentials githubPackagesCredentials
+            authentication githubPackagesAuthentication
+        }
     }
     maven {
         url = uri("https://maven.pkg.github.com/silentchaos512/silentlib")
-        credentials gpr_creds
+        if (hasGithubPackagesCredentials) {
+            credentials githubPackagesCredentials
+            authentication githubPackagesAuthentication
+        }
     }
     maven {
         url = uri("https://maven.pkg.github.com/silentchaos512/silent-utils")
-        credentials gpr_creds
+        if (hasGithubPackagesCredentials) {
+            credentials githubPackagesCredentials
+            authentication githubPackagesAuthentication
+        }
     }
 
 }
@@ -146,7 +176,6 @@ dependencies {
     implementation "net.silentchaos512:silent-gear-1.21.1-neoforge:4.0.30"
     implementation "net.silentchaos512:silent-lib-1.21.1-neoforge:10.4.0"
     compileOnly("mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}")
-    compileOnly("mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}")
     runtimeOnly("mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}")
 }
 
