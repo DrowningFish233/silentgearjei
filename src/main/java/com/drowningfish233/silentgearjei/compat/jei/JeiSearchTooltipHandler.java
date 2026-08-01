@@ -1,5 +1,6 @@
 package com.drowningfish233.silentgearjei.compat.jei;
 
+import com.drowningfish233.silentgearjei.Config;
 import com.drowningfish233.silentgearjei.Utils.JEI.PartTypeSearchTerms;
 import com.drowningfish233.silentgearjei.Utils.JEI.TraitSearchTerms;
 import net.minecraft.network.chat.Component;
@@ -14,21 +15,29 @@ public final class JeiSearchTooltipHandler {
     }
 
     public static void addMaterialTraitSearchTerms(ItemTooltipEvent event) {
-        TooltipFlagExtension tooltipFlag = event.getFlags();
+        if (!Config.CLIENT.enableSearchTerms.get()) {
+            return;
+        }
+
+        TooltipFlagExtension tooltipFlag = (TooltipFlagExtension) event.getFlags();
         if (!tooltipFlag.shouldDisplayAllInformation()) {
             return;
         }
 
         ItemStack stack = event.getItemStack();
 
-        Set<String> traitTerms = TraitSearchTerms.collect(stack);
-        for (String searchTerm : traitTerms) {
-            event.getToolTip().add(Component.literal(searchTerm));
+        if (Config.CLIENT.enableTraitSearch.get()) {
+            Set<String> traitTerms = TraitSearchTerms.collect(stack);
+            for (String searchTerm : traitTerms) {
+                event.getToolTip().add(Component.literal(searchTerm));
+            }
         }
 
-        Set<String> partTypeTerms = PartTypeSearchTerms.collect(stack);
-        for (String searchTerm : partTypeTerms) {
-            event.getToolTip().add(Component.literal(searchTerm));
+        if (Config.CLIENT.enablePartTypeSearch.get()) {
+            Set<String> partTypeTerms = PartTypeSearchTerms.collect(stack);
+            for (String searchTerm : partTypeTerms) {
+                event.getToolTip().add(Component.literal(searchTerm));
+            }
         }
     }
 }

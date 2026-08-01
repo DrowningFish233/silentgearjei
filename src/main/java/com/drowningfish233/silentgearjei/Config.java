@@ -52,6 +52,11 @@ public class Config {
         public final ModConfigSpec.ConfigValue<String> textColorSubtitle;
         public final ModConfigSpec.ConfigValue<String> textColorPropName;
 
+        public final ModConfigSpec.BooleanValue enableSearchTerms;
+        public final ModConfigSpec.BooleanValue requireAdvancedTooltips;
+        public final ModConfigSpec.BooleanValue enableTraitSearch;
+        public final ModConfigSpec.BooleanValue enablePartTypeSearch;
+
         public Client(ModConfigSpec.Builder builder) {
             builder.comment("Silent Gear Jei -JEI Layout Configuration").push("jei_layout");
 
@@ -182,6 +187,25 @@ public class Config {
             enableDynamicRowCalculation = builder
                     .comment("Enable dynamic calculation of rows based on available space (if false, uses fixedMaxRows)")
                     .define("enableDynamicRowCalculation", true);
+            builder.pop();
+
+            builder.comment("Search Terms Settings (adds trait/part type names to JEI search index)").push("search_terms");
+            enableSearchTerms = builder
+                    .comment("""
+                Enable adding trait/part type names as search terms for JEI.
+                WARNING: Enabling this may cause crashes with mods that use Fabric API (e.g., Forgified Fabric API).
+                If you experience 'IncompatibleClassChangeError', disable this and restart.
+                Default: false (disabled for stability)""")
+                    .define("enableSearchTerms", false);
+            requireAdvancedTooltips = builder
+                    .comment("Only add search terms when advanced tooltips are shown (F3+H). Default: true")
+                    .define("requireAdvancedTooltips", true);
+            enableTraitSearch = builder
+                    .comment("Enable trait name search terms (e.g., 'sharp', 'durable')")
+                    .define("enableTraitSearch", true);
+            enablePartTypeSearch = builder
+                    .comment("Enable part type search terms (e.g., 'blade', 'handle')")
+                    .define("enablePartTypeSearch", true);
             builder.pop();
 
             builder.pop(); // jei_layout
