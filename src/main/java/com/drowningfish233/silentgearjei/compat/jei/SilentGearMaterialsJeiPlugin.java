@@ -541,10 +541,13 @@ public class SilentGearMaterialsJeiPlugin implements IModPlugin {
                 }
 
                 JeiScrollWidget mainScrollWidget = new JeiScrollWidget(
-                        new Rect(JeiLayoutConstants.SCROLL_AREA_X,
+                        new Rect(
+                                JeiLayoutConstants.SCROLL_AREA_X,
                                 JeiLayoutConstants.SCROLL_AREA_Y,
                                 JeiLayoutConstants.SCROLL_AREA_WIDTH + JeiScrollWidget.getScrollbarExtraWidth(),
-                                JeiLayoutConstants.SCROLL_AREA_HEIGHT),
+                                JeiLayoutConstants.SCROLL_AREA_HEIGHT
+                        ),
+                        JeiLayoutConstants.SCROLL_AREA_WIDTH,
                         cached.contentHeight,
                         lineWidgets
                 );

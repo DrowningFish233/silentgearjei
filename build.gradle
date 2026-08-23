@@ -171,7 +171,8 @@ configurations {
 }
 
 dependencies {
-    implementation files('libs/AdvancedLootInfo-neoforge-1.21.1-1.7.2.jar')
+    implementation files('libs/AdvancedCoreInfo-neoforge-1.21.1-1.0.0.jar')
+    implementation files('libs/AdvancedLootInfo-neoforge-1.21.1-2.0.1.jar')
     implementation files('libs/emi-1.1.24+1.21.1+neoforge.jar')
     implementation files('libs/silent-gear-1.21.1-neoforge-4.2.1.1.jar')
     implementation files('libs/silent-lib-1.21-neoforge-10.3.1.jar')
